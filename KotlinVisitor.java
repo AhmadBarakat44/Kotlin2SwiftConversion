@@ -4,6 +4,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
     boolean makingButton = false;
     boolean makingText = false;
     boolean makingTextField = false;
+    boolean makingColumn=false;
     @Override
     public String visitKotlinFile(KotlinParser.KotlinFileContext ctx) {
         String toplevelobjs = "";
@@ -100,7 +101,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
     }
 
 
-     @Override
+    @Override
     public String visitStatements(KotlinParser.StatementsContext ctx) {
         String statements = "";
         for (KotlinParser.StatementContext ct : ctx.statement())
@@ -118,6 +119,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
 
     @Override
     public String visitClassBody(KotlinParser.ClassBodyContext ctx) {
+        if(ctx == null){return "";}
         return ("{\n\n" + visitClassMemberDeclarations(ctx.classMemberDeclarations()) + "\n}\n");
     }
 
@@ -126,7 +128,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
         String myout = "";
         for (KotlinParser.ClassMemberDeclarationContext ct : ctx.classMemberDeclaration())
         {
-           myout += (visitClassMemberDeclaration(ct));
+            myout += (visitClassMemberDeclaration(ct));
         }
         return myout;
     }
@@ -248,7 +250,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
     @Override
     public String visitForStatement(KotlinParser.ForStatementContext ctx) {
         return ("for ( " + visitVariableDeclaration(ctx.variableDeclaration()) + " in " + visitExpression(ctx.expression()) + ")\n"
-        + visitControlStructureBody(ctx.controlStructureBody()));
+                + visitControlStructureBody(ctx.controlStructureBody()));
     }
 
     @Override
@@ -363,36 +365,64 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
     @Override
     public String visitPostfixUnaryExpression(KotlinParser.PostfixUnaryExpressionContext ctx) {
         String postfixsuffix = "";
-        if(visitPrimaryExpression(ctx.primaryExpression()).contains("TextField"))
-        {
-
-            makingTextField = true;
-            for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
-            {
-                postfixsuffix += visitPostfixUnarySuffix(ct);
-            }
-            String out = "@state var value: String  = \"value\" \n"
-                    + visitPrimaryExpression(ctx.primaryExpression()) + postfixsuffix;
-            makingTextField = false;
-            return out;
-        }
-        if(visitPrimaryExpression(ctx.primaryExpression()).contains("Button"))
-        {
-            makingButton = true;
-            for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
-            {
-                postfixsuffix += visitPostfixUnarySuffix(ct);
-            }
-            String out = (visitPrimaryExpression(ctx.primaryExpression()) + " action:" + postfixsuffix);
-            makingButton = false;
-            return out;
-        }
         for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
         {
             postfixsuffix += visitPostfixUnarySuffix(ct);
         }
-        String out = (visitPrimaryExpression(ctx.primaryExpression()) + " " + postfixsuffix);
-        return out;
+        if(visitPrimaryExpression(ctx.primaryExpression()) != null)
+        {
+            if(visitPrimaryExpression(ctx.primaryExpression()).contains("TextField"))
+            {
+
+                makingTextField = true;
+                for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
+                {
+                    postfixsuffix += visitPostfixUnarySuffix(ct);
+                }
+                String out = "@state var value: String  = \"value\" \n"
+                        + visitPrimaryExpression(ctx.primaryExpression()) + postfixsuffix;
+                makingTextField = false;
+                return out;
+            }
+            if(visitPrimaryExpression(ctx.primaryExpression()).contains("Column"))
+            {
+                for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
+                {
+                    postfixsuffix += visitPostfixUnarySuffix(ct);
+                }
+
+                String out = "VStack (alignment: .center, spacing: 20)"+ postfixsuffix ;
+                return out;
+            }
+            if(visitPrimaryExpression(ctx.primaryExpression()).contains("Row"))
+            {
+
+                for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
+                {
+                    postfixsuffix += visitPostfixUnarySuffix(ct);
+                }
+                String out = "HStack (alignment: .center, spacing: 20)" + postfixsuffix ;
+                return out;
+            }
+            if(visitPrimaryExpression(ctx.primaryExpression()).contains("Button"))
+            {
+                makingButton = true;
+                for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
+                {
+                    postfixsuffix += visitPostfixUnarySuffix(ct);
+                }
+                String out = (visitPrimaryExpression(ctx.primaryExpression()) + " action:" + postfixsuffix);
+                makingButton = false;
+                return out;
+            }
+            for (KotlinParser.PostfixUnarySuffixContext ct : ctx.postfixUnarySuffix())
+            {
+                postfixsuffix += visitPostfixUnarySuffix(ct);
+            }
+            String out = (visitPrimaryExpression(ctx.primaryExpression()) + " " + postfixsuffix);
+            return out;
+        }
+        return postfixsuffix;
     }
 
     @Override
@@ -437,7 +467,7 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
             {
                 types += visitTypeProjection(ct) + ",";
             }
-           else {types += visitTypeProjection(ct);}
+            else {types += visitTypeProjection(ct);}
         }
         return ("< " + types + " >");
     }
@@ -604,11 +634,16 @@ public class KotlinVisitor extends KotlinParserBaseVisitor<String>
 
     @Override
     public String visitLineStringContent(KotlinParser.LineStringContentContext ctx) {
+        if(ctx.LineStrText() == null)
+        {
+            return "";
+        }
         return ctx.LineStrText().getText();
     }
 
     @Override
     public String visitSimpleIdentifier(KotlinParser.SimpleIdentifierContext ctx) {
+        if(ctx.Identifier() == null){return "";}
         return ctx.Identifier().getText() + " ";
     }
 }
